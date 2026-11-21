@@ -115,7 +115,7 @@ impl NuHelpCompleter {
 
                 Suggestion {
                     value: decl.name().into(),
-                    description: Some(long_desc),
+                    description: Some(long_desc.replace("\r\n", "\n")),
                     extra: Some(extra),
                     span: reedline::Span {
                         start: pos - line.len(),
@@ -174,5 +174,24 @@ mod test {
             assert_eq!(exp, &actual.value);
             assert_eq!(reedline::Span::new(start, end), actual.span);
         }
+    }
+
+    #[test]
+    fn test_help_descriptions_use_lf_line_endings() {
+        let engine_state =
+            nu_command::add_shell_command_context(nu_cmd_lang::create_default_context());
+        let config = engine_state.get_config().clone();
+        let completer = NuHelpCompleter::new(engine_state.into(), config);
+        let suggestion = completer
+            .completion_helper("cd", 2)
+            .into_iter()
+            .find(|suggestion| suggestion.value == "cd")
+            .expect("the cd help completion should exist");
+
+        let description = suggestion
+            .description
+            .expect("the cd help completion should have a description");
+        assert!(description.contains('\n'));
+        assert!(!description.contains('\r'));
     }
 }
